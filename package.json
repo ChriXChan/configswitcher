@@ -1,0 +1,40 @@
+{
+  "name": "configswitcher",
+  "version": "1.0.0",
+  "description": "用于切换本地多套配置文件的交互式终端工具",
+  "main": "dist/index.js",
+  "bin": {
+    "cs": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm test && npm run build",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "config",
+    "switcher",
+    "tui",
+    "cli",
+    "terminal",
+    "config-manager"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/blessed": "^0.1.27",
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81"
+  }
+}
