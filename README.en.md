@@ -11,7 +11,7 @@ An interactive terminal tool for switching local configuration files safely.
 `configswitcher` solves a narrow but surprisingly fragile workflow: switching between multiple config variants in one directory without leaving files in a broken or half-switched state.
 
 ```bash
-npx configswitcher
+npx @chrixc/configswitcher
 cs .
 cs /your/config/dir auth config
 ```
@@ -84,7 +84,7 @@ npm start
 ### Use as a CLI
 
 ```bash
-npx configswitcher
+npx @chrixc/configswitcher
 ```
 
 Or after a global install:

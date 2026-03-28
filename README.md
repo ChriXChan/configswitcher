@@ -11,7 +11,7 @@
 `configswitcher` 用来解决一个很具体、但经常被低估的问题：同一目录里维护多套配置时，如何在切换过程中尽量避免内容丢失、错配和半成功状态。
 
 ```bash
-npx configswitcher
+npx @chrixc/configswitcher
 cs .
 cs /your/config/dir auth config
 ```
@@ -84,7 +84,7 @@ npm start
 ### 作为 CLI 使用
 
 ```bash
-npx configswitcher
+npx @chrixc/configswitcher
 ```
 
 或全局安装后：

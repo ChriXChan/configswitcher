@@ -1,5 +1,5 @@
 {
-  "name": "configswitcher",
+  "name": "@chrixc/configswitcher",
   "version": "1.0.0",
   "description": "用于切换本地多套配置文件的交互式终端工具",
   "main": "dist/index.js",
@@ -12,7 +12,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
     "prepublishOnly": "npm test && npm run build",
     "test": "node --import tsx --test src/**/*.test.ts",
