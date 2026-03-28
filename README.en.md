@@ -2,33 +2,143 @@
 
 [中文](./README.md) | [English](./README.en.md)
 
+![License](https://img.shields.io/badge/license-MIT-1f6feb)
+![Node](https://img.shields.io/badge/node-%3E%3D18-0a7f5a)
+![TUI](https://img.shields.io/badge/interface-terminal%20ui-c46b00)
+
 An interactive terminal tool for switching local configuration files safely.
 
-Use cases:
+`configswitcher` solves a narrow but surprisingly fragile workflow: switching between multiple config variants in one directory without leaving files in a broken or half-switched state.
 
-- Maintain multiple config variants in the same directory
-- Quickly switch between active and candidate configs
-- Recover automatically on failure to avoid file loss
-- Preview file differences in a TUI before switching
+```bash
+npx configswitcher
+cs .
+cs /your/config/dir auth config
+```
 
-The current implementation uses content swapping instead of multi-file rename transactions:
+## Best For
 
-- Create snapshots in a temp directory before switching
-- Write snapshot content back to target files
-- Restore from snapshots if any step fails
+- Keeping multiple `json`, `toml`, `yaml`, or similar config variants in one directory
+- Switching quickly between active and candidate configs
+- Reviewing file differences before execution
+- Recovering automatically if anything fails during the switch
 
-This is more suitable than chained multi-file renames for this problem.
+## Why Not Just Rename Files
+
+Many config-switching scripts are just a chain of file renames.
+
+That looks simple at first, but once multiple files must move together, rename chains can easily leave partial state, overwritten files, or incomplete rollback. `configswitcher` uses a safer content-swap model instead:
+
+- Create a temporary transaction directory before execution
+- Copy the involved files into snapshot storage
+- Write snapshot content back to the target files
+- Restore automatically from snapshots if any step fails
+- Clean up leftover transaction folders on startup or refresh
+
+It is not an OS-level atomic transaction, but it is a much better fit for manual local config switching than a fragile multi-file rename chain.
 
 ## Features
 
 - Scan active and candidate files from a target directory
-- Detect candidate configs by filename prefix
-- Prefer grouped variants first, then fallback to single-file variants
-- Compare files one by one in a TUI
-- Select which prefixes participate in the current switch
+- Detect candidates by filename prefix without requiring `_`-style naming
+- Prefer grouped variants first, then fall back to single-file variants
+- Show a left-side scheme list and right-side per-file colored diff preview
+- Let you choose which prefixes participate in the current switch
 - Refresh directory state before execution
-- Restore automatically from snapshots on failure
-- Recover leftover transaction temp files on startup/refresh
+- Recover automatically on failure with explicit failure diagnostics
+
+## UI Screenshots
+
+The initial screen shows candidate schemes on the left and a diff view on the right:
+
+![Initial view](./assets/p1-first-view.png)
+
+Press `Tab` / `Right` to move to the next file comparison:
+
+![Next file](./assets/p2-right-switch-next-file.png)
+
+Press `Space` to include or exclude the current prefix from the switch:
+
+![Toggle selection](./assets/p3-space-to-unselect.png)
+
+Press `Enter` to execute the replacement directly:
+
+![Execute replacement](./assets/p4-enter-to-replace-content.png)
+
+## Quick Start
+
+### Local development
+
+```bash
+npm install
+npm run dev
+```
+
+### Run after build
+
+```bash
+npm run build
+npm start
+```
+
+### Use as a CLI
+
+```bash
+npx configswitcher
+```
+
+Or after a global install:
+
+```bash
+cs
+```
+
+## Start Options
+
+Start in the current directory:
+
+```bash
+npm run dev
+```
+
+Pass directory and basenames explicitly:
+
+```bash
+npm run dev -- . auth config
+```
+
+The published CLI supports the same forms:
+
+```bash
+cs .
+cs . auth config
+cs /your/config/dir auth config
+```
+
+In PowerShell, if you prefer comma-separated basenames, quote them:
+
+```powershell
+npm run dev -- . "auth,config"
+```
+
+## Shortcuts
+
+Main screen:
+
+- `Left`: previous file
+- `Tab` / `Right`: next file
+- `Space`: select/unselect
+- `PgUp` / `PgDn`: page up/down
+- `R`: refresh current directory state
+- `Enter`: execute replacement
+- `Esc`: return from result view
+- `Q`: quit
+
+Result screen:
+
+- `R`: refresh current directory state
+- `Enter`: rescan
+- `Esc`: go back to candidate schemes
 
 ## How It Works
 
@@ -41,95 +151,19 @@ config.toml
 config_2.toml
 ```
 
-When switching to another variant, the tool will:
+If you switch to the `auth_2.json + config_2.toml` variant, the tool will:
 
-1. Create a temp transaction directory like `change-config-temp-xxxx`
-2. Copy the involved source files into that directory
-3. Write snapshot content back to target files
+1. Create a transaction temp directory such as `change-config-temp-xxxx`
+2. Copy the involved files into that directory as snapshots
+3. Write the snapshot content back into the active and candidate files
 4. Remove the temp directory on success
 5. Restore original content from snapshots on failure
 
-That means:
+The important point is that it swaps content instead of renaming file identities:
 
-- Both `auth.json` and `auth_2.json` remain in place
-- Their contents are swapped on success
-- The tool tries to restore the original state on failure
-
-## Installation
-
-### Local development
-
-```bash
-npm install
-npm run dev
-```
-
-### Build
-
-```bash
-npm run build
-npm start
-```
-
-### After publishing to npm
-
-```bash
-npx configswitcher
-```
-
-Or after global install:
-
-```bash
-cs
-```
-
-The command also supports directory and basenames:
-
-```bash
-cs .
-cs . auth config
-cs C:\\your\\config\\dir auth config
-```
-
-## Usage
-
-### Start
-
-Start in the current directory:
-
-```bash
-npm run dev
-```
-
-Or pass directory and basenames explicitly:
-
-```bash
-npm run dev -- . auth config
-```
-
-In PowerShell, if you prefer comma-separated basenames, quote them:
-
-```powershell
-npm run dev -- . "auth,config"
-```
-
-## UI Screenshots
-
-Initial view with candidate schemes on the left and file comparison on the right:
-
-![Initial view](./assets/p1-first-view.png)
-
-Switch to the next file with `Tab` / `Right`:
-
-![Next file](./assets/p2-right-switch-next-file.png)
-
-Toggle whether the current prefix participates with `Space`:
-
-![Toggle selection](./assets/p3-space-to-unselect.png)
-
-Press `Enter` to execute the replacement:
-
-![Execute replacement](./assets/p4-enter-to-replace-content.png)
+- `auth.json` and `auth_2.json` both stay in place
+- Their contents are exchanged on success
+- The tool tries to restore the pre-run state on failure
 
 ## Candidate Detection Rules
 
@@ -159,36 +193,17 @@ config.toml
 config_2.toml
 ```
 
-This becomes one grouped scheme:
+It will first show a grouped scheme:
 
 ```text
 auth_2.json  config_2.toml
 ```
 
-If a candidate file has no matching grouped partner, it appears as a single-file scheme.
+If a candidate file does not have a matching grouped partner, it appears as a single-file scheme.
 
-## Shortcuts
+## Failure Details
 
-On the main screen:
-
-- `Left`: previous file
-- `Tab` / `Right`: next file
-- `Space`: select/unselect current prefix
-- `PgUp` / `PgDn`: page up/down
-- `R`: refresh current directory state
-- `Enter`: execute replacement
-- `Esc`: return from result view
-- `Q`: quit
-
-On the result screen:
-
-- `R`: refresh current directory state
-- `Enter`: rescan
-- `Esc`: go back to schemes
-
-## Result View
-
-On failure, the result view shows:
+When execution fails, the result view shows:
 
 - failure reason
 - failure stage
@@ -210,13 +225,13 @@ npm test
 Current coverage includes:
 
 - successful content swap
-- restoration on write failure
+- restoration after write failure
 - basic behavior on the real filesystem
-- recovery of leftover snapshot/temp files
+- recovery of leftover snapshot or transaction files
 
-## Release Notes
+## Release
 
-Before publishing to GitHub:
+Before pushing to GitHub:
 
 ```bash
 npm test
@@ -237,13 +252,11 @@ npm publish
 - `files`
 - `prepublishOnly`
 
-So npm publish will run test and build first.
-
 ## Known Limits
 
-- This is a best-effort safe recovery model, not an OS-level multi-file atomic transaction
+- This is a best-effort recovery model, not an OS-level multi-file atomic transaction
 - If external processes keep modifying the same files during execution, switching can still fail
-- Better suited for manual interactive switching than high-frequency concurrent automation
+- It is better suited for manual interactive switching than high-frequency concurrent automation
 
 ## License
 
