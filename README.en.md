@@ -1,6 +1,6 @@
 # configswitcher
 
-[中文](./README.md) | [English](./README.en.md)
+[中文](https://github.com/ChriXChan/configswitcher/blob/main/README.md) | [English](https://github.com/ChriXChan/configswitcher/blob/main/README.en.md)
 
 ![License](https://img.shields.io/badge/license-MIT-1f6feb)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-0a7f5a)
@@ -51,19 +51,19 @@ It is not an OS-level atomic transaction, but it is a much better fit for manual
 
 The initial screen shows candidate schemes on the left and a diff view on the right:
 
-![Initial view](./assets/p1-first-view.png)
+![Initial view](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p1-first-view.png)
 
 Press `Tab` / `Right` to move to the next file comparison:
 
-![Next file](./assets/p2-right-switch-next-file.png)
+![Next file](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p2-right-switch-next-file.png)
 
 Press `Space` to include or exclude the current prefix from the switch:
 
-![Toggle selection](./assets/p3-space-to-unselect.png)
+![Toggle selection](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p3-space-to-unselect.png)
 
 Press `Enter` to execute the replacement directly:
 
-![Execute replacement](./assets/p4-enter-to-replace-content.png)
+![Execute replacement](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p4-enter-to-replace-content.png)
 
 ## Quick Start
 
@@ -260,4 +260,4 @@ npm publish
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is licensed under the [MIT License](https://github.com/ChriXChan/configswitcher/blob/main/LICENSE).

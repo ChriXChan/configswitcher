@@ -1,6 +1,6 @@
 # configswitcher
 
-[中文](./README.md) | [English](./README.en.md)
+[中文](https://github.com/ChriXChan/configswitcher/blob/main/README.md) | [English](https://github.com/ChriXChan/configswitcher/blob/main/README.en.md)
 
 ![License](https://img.shields.io/badge/license-MIT-1f6feb)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-0a7f5a)
@@ -51,19 +51,19 @@ cs /your/config/dir auth config
 
 首次进入后，左侧显示候选替换方案，右侧显示当前文件与候选文件的差异：
 
-![首次进入界面](./assets/p1-first-view.png)
+![首次进入界面](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p1-first-view.png)
 
 按 `Tab` / `Right` 切到下一个文件继续对比：
 
-![切换到下一个文件](./assets/p2-right-switch-next-file.png)
+![切换到下一个文件](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p2-right-switch-next-file.png)
 
 按 `Space` 可以取消或重新选中当前前缀是否参与本次替换：
 
-![取消当前前缀](./assets/p3-space-to-unselect.png)
+![取消当前前缀](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p3-space-to-unselect.png)
 
 确认无误后按 `Enter` 直接执行内容替换：
 
-![执行替换](./assets/p4-enter-to-replace-content.png)
+![执行替换](https://raw.githubusercontent.com/ChriXChan/configswitcher/main/assets/p4-enter-to-replace-content.png)
 
 ## 快速开始
 
@@ -260,4 +260,4 @@ npm publish
 
 ## License
 
-本项目使用 [MIT License](./LICENSE)。
+本项目使用 [MIT License](https://github.com/ChriXChan/configswitcher/blob/main/LICENSE)。
