@@ -1,12 +1,14 @@
 import blessed from "blessed";
 
-import { BackupMode, CandidateEntry, CandidateGroup, ExecutionResult, ScanResult, SwitchPlan } from "../models/types";
+import { BackupMode, CandidateEntry, CandidateGroup, ExecutionResult, ReplaceMode, ScanResult, SwitchPlan } from "../models/types";
 import { ConfigScanner } from "../services/configScanner";
 import { ContentViewer } from "../services/contentViewer";
+import { CurrentConfigMatcher } from "../services/currentConfigMatcher";
 import { SelectionPlanner } from "../services/selectionPlanner";
 import { SwitchExecutor } from "../services/switchExecutor";
 import { SwitchPlanner } from "../services/switchPlanner";
 import { TransactionRecovery } from "../services/transactionRecovery";
+import { getReplaceModeLabel, getViewAfterExecution } from "./viewState";
 
 type View = "groups" | "result";
 
@@ -20,6 +22,7 @@ export class ConfigSwitcherApp {
   private readonly planner = new SwitchPlanner();
   private readonly executor = new SwitchExecutor();
   private readonly viewer = new ContentViewer();
+  private readonly matcher = new CurrentConfigMatcher(this.viewer);
   private readonly selectionPlanner = new SelectionPlanner();
   private readonly recovery = new TransactionRecovery();
 
@@ -80,6 +83,9 @@ export class ConfigSwitcherApp {
     },
     scrollbar: {
       ch: " ",
+      style: {
+        bg: "gray",
+      },
     },
   });
 
@@ -97,6 +103,9 @@ export class ConfigSwitcherApp {
     alwaysScroll: true,
     scrollbar: {
       ch: " ",
+      style: {
+        bg: "gray",
+      },
     },
     padding: { left: 1, right: 1 },
   });
@@ -115,6 +124,9 @@ export class ConfigSwitcherApp {
     alwaysScroll: true,
     scrollbar: {
       ch: " ",
+      style: {
+        bg: "gray",
+      },
     },
     padding: { left: 1, right: 1 },
   });
@@ -142,6 +154,7 @@ export class ConfigSwitcherApp {
   private selectedGroupSuffix?: string;
   private selectedBasenames = new Set<string>();
   private backupMode: BackupMode = { type: "auto" };
+  private replaceMode: ReplaceMode = "copy";
   private currentPlan?: SwitchPlan;
   private lastExecutionResult?: ExecutionResult;
   private suppressListSelectionEvent = false;
@@ -161,6 +174,8 @@ export class ConfigSwitcherApp {
   }
 
   public async start(): Promise<void> {
+    this.screen.program.hideCursor();
+
     if (this.basenames.length === 0) {
       try {
         this.basenames = await this.scanner.inferBasenames(this.directory);
@@ -234,7 +249,13 @@ export class ConfigSwitcherApp {
     }
 
     this.lastExecutionResult = await this.executor.execute(this.currentPlan);
-    this.view = "result";
+    this.view = getViewAfterExecution(this.lastExecutionResult.success);
+
+    if (this.lastExecutionResult.success) {
+      await this.scanDirectory();
+      return;
+    }
+
     this.render();
   }
 
@@ -288,6 +309,7 @@ export class ConfigSwitcherApp {
       effectiveScanResult,
       group.id,
       this.backupMode,
+      this.replaceMode,
     );
 
     if (this.currentPlan.issues.length > 0) {
@@ -374,6 +396,11 @@ export class ConfigSwitcherApp {
 
     if (keyName === "space") {
       this.toggleCurrentEntrySelection();
+      return;
+    }
+
+    if (keyName === "m" || keyName === "M") {
+      this.toggleReplaceMode();
     }
   }
 
@@ -409,6 +436,7 @@ export class ConfigSwitcherApp {
       this.view === "groups"
         ? "候选组"
         : "执行结果";
+    const replaceModeLabel = getReplaceModeLabel(this.replaceMode);
 
     const pendingTargets = this.currentGroup()
       ?.entries.filter((entry) => this.selectedBasenames.has(entry.basename))
@@ -421,12 +449,12 @@ export class ConfigSwitcherApp {
     this.header.setContent(
       ` Config Switcher TUI | 当前视图: ${modeLabel} | 目录: ${this.directory} | 基名: ${
         this.basenames.length > 0 ? this.basenames.join(", ") : "未设置"
-      } | 当前待替换文件: ${pendingTargets || "未选择"} `,
+      } | 当前模式: ${replaceModeLabel} | 当前待替换文件: ${pendingTargets || "未选择"} `,
     );
   }
 
   private renderFooter(): void {
-    let content = " Left:上一个文件  Tab/Right:下一个文件  Space:选中/取消  PgUp/PgDn:翻页  R:刷新  Enter:直接替换  Esc:返回  Q:退出 ";
+    let content = " Left:上一个文件  Tab/Right:下一个文件  Space:选中/取消  M:切换模式  PgUp/PgDn:翻页  R:刷新  Enter:直接替换  Esc:返回  Q:退出 ";
 
     if (this.view === "result") {
       content = " R:刷新  Enter:重新扫描  Esc:返回候选组  Q:退出 ";
@@ -440,7 +468,7 @@ export class ConfigSwitcherApp {
     const items =
       groups.length > 0
         ? groups.map((group) => {
-            const label = group.label;
+            const label = `${this.matcher.matchesGroup(group) ? "☑ " : ""}${group.label}`;
 
             if (group.isExecutable) {
               return `{green-fg}${label}{/green-fg}`;
@@ -646,6 +674,11 @@ export class ConfigSwitcherApp {
       this.selectedBasenames.add(entry.basename);
     }
 
+    this.render();
+  }
+
+  private toggleReplaceMode(): void {
+    this.replaceMode = this.replaceMode === "copy" ? "swap" : "copy";
     this.render();
   }
 

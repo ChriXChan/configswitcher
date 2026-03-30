@@ -19,6 +19,7 @@ test("real filesystem: execute swaps contents and removes temp directory", async
     const plan: SwitchPlan = {
       directory: tempDir,
       suffix: "auth_2.json",
+      replaceMode: "swap",
       backupMode: { type: "auto" },
       issues: [],
       warnings: [],
@@ -65,6 +66,7 @@ test("real filesystem: missing source file returns failed result instead of thro
     const plan: SwitchPlan = {
       directory: tempDir,
       suffix: "auth_2.json",
+      replaceMode: "swap",
       backupMode: { type: "auto" },
       issues: [],
       warnings: [],

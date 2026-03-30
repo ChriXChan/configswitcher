@@ -42,8 +42,10 @@ export type BackupMode =
   | { type: "auto" }
   | { type: "manual"; suffix: string };
 
+export type ReplaceMode = "copy" | "swap";
+
 export interface SwitchAction {
-  kind: "swap";
+  kind: ReplaceMode;
   basename: string;
   from: string;
   to: string;
@@ -53,6 +55,7 @@ export interface SwitchAction {
 export interface SwitchPlan {
   directory: string;
   suffix: string;
+  replaceMode: ReplaceMode;
   backupMode: BackupMode;
   actions: SwitchAction[];
   issues: string[];

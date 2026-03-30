@@ -3,6 +3,7 @@ import path from "node:path";
 
 import {
   BackupMode,
+  ReplaceMode,
   ScanResult,
   SwitchAction,
   SwitchPlan,
@@ -13,6 +14,7 @@ export class SwitchPlanner {
     scanResult: ScanResult,
     groupId: string,
     backupMode: BackupMode,
+    replaceMode: ReplaceMode,
   ): Promise<SwitchPlan> {
     const group = scanResult.groups.find((item) => item.id === groupId);
     const issues: string[] = [];
@@ -24,6 +26,7 @@ export class SwitchPlanner {
       return {
         directory: scanResult.directory,
         suffix: groupId,
+        replaceMode,
         backupMode,
         actions,
         issues,
@@ -33,20 +36,17 @@ export class SwitchPlanner {
 
     group.issues.forEach((issue) => issues.push(issue));
 
-    const reservedTargets = new Set<string>();
-
     for (const entry of group.entries) {
       if (!entry.candidateFile) {
         issues.push(`[${entry.basename}] 缺少候选文件，无法生成切换计划。`);
         continue;
       }
 
-      const formalTarget = path.join(
-        scanResult.directory,
-        `${entry.basename}${entry.candidateFile.extension}`,
-      );
+      const formalTarget =
+        entry.activeFile?.path ??
+        path.join(scanResult.directory, `${entry.basename}${entry.candidateFile.extension}`);
 
-      if (entry.activeFile) {
+      if (replaceMode === "swap" && entry.activeFile) {
         actions.push({
           kind: "swap",
           basename: entry.basename,
@@ -57,7 +57,7 @@ export class SwitchPlanner {
       }
 
       actions.push({
-        kind: "swap",
+        kind: replaceMode,
         basename: entry.basename,
         from: entry.candidateFile.path,
         to: formalTarget,
@@ -73,6 +73,7 @@ export class SwitchPlanner {
       return {
         directory: scanResult.directory,
         suffix: group.label,
+        replaceMode,
         backupMode,
         actions: [],
         issues,
@@ -83,6 +84,7 @@ export class SwitchPlanner {
     return {
       directory: scanResult.directory,
       suffix: group.label,
+      replaceMode,
       backupMode,
       actions,
       issues,

@@ -7,7 +7,7 @@ import {
 import { FileOperator, NodeFileOperator, PlanValidator } from "./planValidator";
 
 interface SnapshotRecord {
-  sourcePath: string;
+  originalPath: string;
   snapshotPath: string;
 }
 
@@ -28,7 +28,7 @@ export class SwitchExecutor {
         logs: [
           {
             action: plan.actions[0] ?? {
-              kind: "backup",
+              kind: "copy",
               basename: "",
               from: "",
               to: "",
@@ -57,7 +57,7 @@ export class SwitchExecutor {
         logs: [
           {
             action: plan.actions[0] ?? {
-              kind: "backup",
+              kind: "copy",
               basename: "",
               from: "",
               to: "",
@@ -81,11 +81,11 @@ export class SwitchExecutor {
           action,
           stage: "execute",
           status: sourceExists ? "success" : "failed",
-          message: `暂存前检查：${action.from} ${sourceExists ? "存在" : "不存在"}`,
+          message: `提交前源文件检查：${action.from} ${sourceExists ? "存在" : "不存在"}`,
         });
 
         if (!sourceExists) {
-          throw new Error(`暂存阶段源文件不存在：${action.from}`);
+          throw new Error(`提交阶段源文件不存在：${action.from}`);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -116,7 +116,7 @@ export class SwitchExecutor {
 
     for (const action of plan.actions) {
       try {
-        const snapshot = snapshots.find((item) => item.sourcePath === action.from);
+        const snapshot = snapshots.find((item) => item.originalPath === action.from);
         const snapshotPath = snapshot?.snapshotPath;
         const stagedExists = snapshotPath
           ? await this.fileOperator.exists(snapshotPath)
@@ -181,23 +181,29 @@ export class SwitchExecutor {
     tempDirectory: string,
   ): Promise<SnapshotRecord[]> {
     const snapshots: SnapshotRecord[] = [];
-    const seenSources = new Set<string>();
+    const seenPaths = new Set<string>();
 
     try {
       await this.fileOperator.ensureDirectory(tempDirectory);
       for (let index = 0; index < actions.length; index += 1) {
         const action = actions[index];
-        if (seenSources.has(action.from)) {
-          continue;
-        }
+        for (const targetPath of [action.from, action.to]) {
+          if (seenPaths.has(targetPath) || !(await this.fileOperator.exists(targetPath))) {
+            continue;
+          }
 
-        seenSources.add(action.from);
-        const snapshotPath = this.createSnapshotPath(tempDirectory, action.from, index);
-        await this.fileOperator.copy(action.from, snapshotPath);
-        snapshots.push({
-          sourcePath: action.from,
-          snapshotPath,
-        });
+          seenPaths.add(targetPath);
+          const snapshotPath = this.createSnapshotPath(
+            tempDirectory,
+            targetPath,
+            snapshots.length,
+          );
+          await this.fileOperator.copy(targetPath, snapshotPath);
+          snapshots.push({
+            originalPath: targetPath,
+            snapshotPath,
+          });
+        }
       }
     } catch (error) {
       await this.cleanupSnapshots(snapshots, tempDirectory);
@@ -215,32 +221,38 @@ export class SwitchExecutor {
 
     for (const snapshot of snapshots) {
       try {
-        await this.fileOperator.copy(snapshot.snapshotPath, snapshot.sourcePath);
+        await this.fileOperator.copy(snapshot.snapshotPath, snapshot.originalPath);
         logs.push({
-          action: actions.find((action) => action.from === snapshot.sourcePath) ?? {
-            kind: "swap",
+          action:
+            actions.find(
+              (action) => action.from === snapshot.originalPath || action.to === snapshot.originalPath,
+            ) ?? {
+            kind: "copy",
             basename: "",
-            from: snapshot.sourcePath,
-            to: snapshot.sourcePath,
-            description: `恢复 ${snapshot.sourcePath}`,
+            from: snapshot.originalPath,
+            to: snapshot.originalPath,
+            description: `恢复 ${snapshot.originalPath}`,
           },
           stage: "rollback",
           status: "success",
-          message: `已恢复：${snapshot.sourcePath}`,
+          message: `已恢复：${snapshot.originalPath}`,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         logs.push({
-          action: actions.find((action) => action.from === snapshot.sourcePath) ?? {
-            kind: "swap",
+          action:
+            actions.find(
+              (action) => action.from === snapshot.originalPath || action.to === snapshot.originalPath,
+            ) ?? {
+            kind: "copy",
             basename: "",
-            from: snapshot.sourcePath,
-            to: snapshot.sourcePath,
-            description: `恢复 ${snapshot.sourcePath}`,
+            from: snapshot.originalPath,
+            to: snapshot.originalPath,
+            description: `恢复 ${snapshot.originalPath}`,
           },
           stage: "rollback",
           status: "failed",
-          message: `恢复失败：${snapshot.sourcePath}，原因：${message}`,
+          message: `恢复失败：${snapshot.originalPath}，原因：${message}`,
         });
       }
     }

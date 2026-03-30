@@ -69,6 +69,7 @@ test("execute swaps file contents and keeps both files", async () => {
   const plan: SwitchPlan = {
     directory: "C:/tmp",
     suffix: "auth_2.json",
+    replaceMode: "swap",
     backupMode: { type: "auto" },
     issues: [],
     warnings: [],
@@ -102,6 +103,43 @@ test("execute swaps file contents and keeps both files", async () => {
   assert.equal(operator.listDirectories().length, 0);
 });
 
+test("execute copies candidate content into the active file and keeps candidate unchanged", async () => {
+  const operator = new FakeFileOperator({
+    "C:/tmp/auth.json": "ACTIVE",
+    "C:/tmp/auth_2.json": "CANDIDATE",
+  });
+
+  const executor = new SwitchExecutor(operator);
+  const plan: SwitchPlan = {
+    directory: "C:/tmp",
+    suffix: "auth_2.json",
+    replaceMode: "copy",
+    backupMode: { type: "auto" },
+    issues: [],
+    warnings: [],
+    actions: [
+      {
+        kind: "copy",
+        basename: "auth",
+        from: "C:/tmp/auth_2.json",
+        to: "C:/tmp/auth.json",
+        description: "auth_2.json -> auth.json",
+      },
+    ],
+  };
+
+  const result = await executor.execute(plan);
+
+  assert.equal(result.success, true);
+  assert.equal(operator.read("C:/tmp/auth.json"), "CANDIDATE");
+  assert.equal(operator.read("C:/tmp/auth_2.json"), "CANDIDATE");
+  assert.equal(
+    operator.listFiles().some((filePath) => filePath.includes("change-config-temp")),
+    false,
+  );
+  assert.equal(operator.listDirectories().length, 0);
+});
+
 test("execute restores original contents when a target write fails", async () => {
   const operator = new FakeFileOperator(
     {
@@ -117,6 +155,7 @@ test("execute restores original contents when a target write fails", async () =>
   const plan: SwitchPlan = {
     directory: "C:/tmp",
     suffix: "bundle",
+    replaceMode: "swap",
     backupMode: { type: "auto" },
     issues: [],
     warnings: [],
