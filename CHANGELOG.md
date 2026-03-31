@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.1.1] - 2026-03-31
 
 ### Changed
 - 首次进入 TUI 时，如果列表中存在与当前正式配置内容一致的方案，默认选中第一个 `☑` 方案

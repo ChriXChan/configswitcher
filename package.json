@@ -1,6 +1,6 @@
 {
   "name": "@chrixc/configswitcher",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "用于切换本地多套配置文件的交互式终端工具",
   "main": "dist/index.js",
   "homepage": "https://github.com/ChriXChan/configswitcher#readme",
