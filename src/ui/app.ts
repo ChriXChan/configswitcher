@@ -8,7 +8,7 @@ import { SelectionPlanner } from "../services/selectionPlanner";
 import { SwitchExecutor } from "../services/switchExecutor";
 import { SwitchPlanner } from "../services/switchPlanner";
 import { TransactionRecovery } from "../services/transactionRecovery";
-import { getReplaceModeLabel, getViewAfterExecution } from "./viewState";
+import { getReplaceModeLabel, getRestoredGroupIndex, getViewAfterExecution } from "./viewState";
 
 type View = "groups" | "result";
 
@@ -225,11 +225,11 @@ export class ConfigSwitcherApp {
     });
   }
 
-  private async scanDirectory(): Promise<void> {
+  private async scanDirectory(preservedGroupId?: string): Promise<void> {
     try {
       await this.recovery.recoverDirectory(this.directory);
       const scanResult = await this.scanner.scan(this.directory, this.basenames);
-      this.enterGroupsView(scanResult);
+      this.enterGroupsView(scanResult, preservedGroupId);
       this.render();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -248,11 +248,12 @@ export class ConfigSwitcherApp {
       return;
     }
 
+    const currentGroupId = this.currentGroup()?.id;
     this.lastExecutionResult = await this.executor.execute(this.currentPlan);
     this.view = getViewAfterExecution(this.lastExecutionResult.success);
 
     if (this.lastExecutionResult.success) {
-      await this.scanDirectory();
+      await this.scanDirectory(currentGroupId);
       return;
     }
 
@@ -262,7 +263,7 @@ export class ConfigSwitcherApp {
   private async executeSelectedGroup(): Promise<void> {
     const currentGroupId = this.currentGroup()?.id;
     const previousSelection = new Set(this.selectedBasenames);
-    await this.scanDirectory();
+    await this.scanDirectory(currentGroupId);
 
     const group = currentGroupId
       ? this.scanResult?.groups.find((item) => item.id === currentGroupId)
@@ -376,7 +377,7 @@ export class ConfigSwitcherApp {
 
   private async handleGlobalKeypress(keyName: string): Promise<void> {
     if (keyName === "r" || keyName === "R") {
-      await this.scanDirectory();
+      await this.scanDirectory(this.currentGroup()?.id);
       return;
     }
 
@@ -404,12 +405,16 @@ export class ConfigSwitcherApp {
     }
   }
 
-  private enterGroupsView(scanResult: ScanResult): void {
+  private enterGroupsView(scanResult: ScanResult, preservedGroupId?: string): void {
     this.scanResult = scanResult;
     this.view = "groups";
-    this.selectedGroupIndex = 0;
+    this.selectedGroupIndex = getRestoredGroupIndex(
+      scanResult.groups,
+      preservedGroupId,
+      (group) => this.matcher.matchesGroup(group),
+    );
     this.selectedEntryIndex = 0;
-    this.selectedGroupSuffix = scanResult.groups[0]?.id;
+    this.selectedGroupSuffix = scanResult.groups[this.selectedGroupIndex]?.id;
     this.selectedBasenames = new Set(scanResult.basenames);
     this.currentPlan = undefined;
     this.lastExecutionResult = undefined;
@@ -513,14 +518,16 @@ export class ConfigSwitcherApp {
     const rightContent = this.renderEntryComparison("candidate", currentEntry);
     const compareIndex = `${this.selectedEntryIndex + 1}/${group.entries.length}`;
     const selectionLabel = this.selectedBasenames.has(currentEntry.basename)
-      ? "[已选]"
-      : "[未选]";
+      ? "{green-fg}[已选]{/green-fg}"
+      : "{red-fg}[未选]{/red-fg}";
+    const activeRoleLabel = "{cyan-fg}[正式]{/cyan-fg}";
+    const candidateRoleLabel = "{yellow-fg}[候选]{/yellow-fg}";
 
     this.compareLeft.setLabel(
-      ` 当前正式文件 ${currentEntry.activeFile?.fullName ? `(${currentEntry.activeFile.fullName})` : "(无)"} ${selectionLabel} [${compareIndex}] `,
+      ` ${currentEntry.activeFile?.fullName ?? "(无)"}${activeRoleLabel}${selectionLabel}[${compareIndex}] `,
     );
     this.compareRight.setLabel(
-      ` 候选文件 ${currentEntry.candidateFile?.fullName ? `(${currentEntry.candidateFile.fullName})` : "(无)"} ${selectionLabel} [${compareIndex}] `,
+      ` ${currentEntry.candidateFile?.fullName ?? "(无)"}${candidateRoleLabel}${selectionLabel}[${compareIndex}] `,
     );
     this.compareLeft.setContent(leftContent);
     this.compareRight.setContent(rightContent);
