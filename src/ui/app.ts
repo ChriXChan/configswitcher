@@ -8,6 +8,7 @@ import { SelectionPlanner } from "../services/selectionPlanner";
 import { SwitchExecutor } from "../services/switchExecutor";
 import { SwitchPlanner } from "../services/switchPlanner";
 import { TransactionRecovery } from "../services/transactionRecovery";
+import { createExclusiveShortcutHandler } from "./shortcutGuard";
 import { getReplaceModeLabel, getRestoredGroupIndex, getViewAfterExecution } from "./viewState";
 
 type View = "groups" | "result";
@@ -616,6 +617,7 @@ export class ConfigSwitcherApp {
   }
 
   private bindShortcut(keys: string[], handler: () => void | Promise<void>): void {
+    const guardedHandler = createExclusiveShortcutHandler(handler);
     const widgets = [
       this.screen,
       this.leftList,
@@ -625,7 +627,7 @@ export class ConfigSwitcherApp {
 
     widgets.forEach((widget) => {
       widget.key(keys, async () => {
-        await handler();
+        await guardedHandler();
       });
     });
   }

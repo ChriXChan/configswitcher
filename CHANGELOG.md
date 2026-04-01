@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-04-01
+
+### Fixed
+- 修复 TUI 中 `Enter` 按键事件重复触发导致“首次替换出现错误提示但实际执行成功”的问题
+- 为快捷键执行增加防重入保护，避免同一轮操作被重复提交
+
+### Added
+- 新增快捷键防重入回归测试，覆盖执行中重复触发的场景
+
 ## [1.1.1] - 2026-03-31
 
 ### Changed
